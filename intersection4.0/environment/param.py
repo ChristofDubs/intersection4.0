@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 w = 3.0  # lane width
 l = 4.0  # car length
@@ -89,8 +88,3 @@ def plot_street(plt):
         plt.plot(*flip(horz_edge(d, d + s, 0), i), 'k--')
         plt.plot(*flip(short_turn, i), 'k--')
         plt.plot(*flip(long_turn, i), 'k--')
-
-
-plt.figure()
-plot_street(plt)
-plt.show()
