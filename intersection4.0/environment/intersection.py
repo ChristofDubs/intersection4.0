@@ -5,7 +5,6 @@ This module contains the classes for expressing positions as discretized points 
 author: Christof Dubs
 """
 import numpy as np
-import matplotlib.pyplot as plt
 from param import intersection_params, plot_street
 from definitions import SectionIndex as SI
 from rot_2d import rot_z
@@ -186,9 +185,3 @@ class Intersection:
         styles = ['ro', 'b*', 'g+', 'y.']
         for i in range(4):
             plt.plot([p[0] for p in points[i]], [p[1] for p in points[i]], styles[i])
-
-
-intersection = Intersection(intersection_params)
-plt.figure()
-intersection.plot_points(plt)
-plt.show()
