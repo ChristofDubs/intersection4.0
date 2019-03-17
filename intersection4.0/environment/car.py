@@ -80,19 +80,22 @@ class Car:
             raise ValueError("invalid action: {}".format(action))
 
         self.progress = (self.future_vel + self.vel) / 2
+        self.calculate_future_indices()
         return np.sqrt(self.future_vel)
 
     def execute_action(self):
         self.vel = self.future_vel
-        self.node_idx += int(self.progress)
-        self.update_segment()
+        self.node_idx = self.future_node_idx
+        self.segment_idx = self.future_segment_idx
 
-    def update_segment(self):
-        while (self.node_idx >= self.segment_lookup[self.segment_idx]):
-            self.node_idx -= self.segment_lookup[self.segment_idx]
-            self.segment_idx += 1
-            if self.segment_idx > 2:
-                self.node_idx = -1
+    def calculate_future_indices(self):
+        self.future_node_idx = self.node_idx + self.progress
+        self.future_segment_idx = self.segment_idx
+        while (self.future_node_idx >= self.segment_lookup[self.future_segment_idx]):
+            self.future_node_idx -= self.segment_lookup[self.future_segment_idx]
+            self.future_segment_idx += 1
+            if self.future_segment_idx > 2:
+                self.future_node_idx = -1
                 return
         return
 
