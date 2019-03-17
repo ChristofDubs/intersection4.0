@@ -35,6 +35,7 @@ class CurveSegmentParam(SegmentParam):
 class Segment:
     def __init__(self, param):
         self.num_points = param.num_points
+        self.length = param.length
         self.points = np.zeros([3, self.num_points])
 
     def get_point(self, node_idx):
@@ -47,67 +48,95 @@ class LineSegment(Segment):
     def __init__(self, start, param):
         super().__init__(param)
         self.param = param
+        self.start = start
         self.dir = np.array([np.cos(start[2]), np.sin(start[2]), 0])
         for i in range(param.num_points):
-            self.points[:, i] = start + (param.start_offset + i * param.step_size) * self.dir
+            self.points[:, i] = self.calc_point(param.start_offset + i * param.step_size)
+
+    def calc_point(self, l):
+        return self.start + l * self.dir
 
 
 class TurnSegment(Segment):
     def __init__(self, start, param, right=True):
         super().__init__(param)
+        self.param = param
+
+        self.angle_dir = -1 if right else 1
+        self.arc_start_angle = start[2] - self.angle_dir * np.pi / 2
+
+        arc_start_vec = param.radius * \
+            np.array([np.cos(self.arc_start_angle), np.sin(self.arc_start_angle), 0])
+        self.arc_center = start - arc_start_vec
+
         start_angle = param.start_offset / param.radius
         angle_incr = param.step_size / param.radius
 
-        dir = 1 if right else -1
-
-        arc_center = start + np.array([0, dir * param.radius, 0])
         for i in range(param.num_points):
-            angle = start_angle + i * angle_incr
-            self.points[:, i] = arc_center + \
-                np.array([-param.radius * np.sin(angle), -dir * param.radius * np.cos(angle), -dir * angle])
+            self.points[:, i] = self.calc_point(param.start_offset + i * param.step_size)
+
+    def calc_point(self, l):
+        angle_delta = self.angle_dir * l / self.param.radius
+        angle = self.arc_start_angle + angle_delta
+        return self.arc_center + \
+            np.array([self.param.radius * np.cos(angle), self.param.radius * np.sin(angle), angle_delta])
 
 
 class LeftTurn(Segment):
     def __init__(self, start, straight_length, param):
+        self.param = param
+        self.segments = [None] * 3
+        rot = rot_z(start[2])
         init_line_param = LineSegmentParam(straight_length, param.step_size, param.start_offset)
+        self.segments[0] = LineSegment(start, init_line_param)
 
         curve_param = CurveSegmentParam(
             param.radius,
             param.step_size,
             init_line_param.length_overflow)
-        curve_start = start + np.array([-straight_length, 0, 0])
-        curve = TurnSegment(curve_start, curve_param, False)
+        curve_start = start + np.append(np.dot(rot, np.array([straight_length, 0])), 0)
+        self.segments[1] = TurnSegment(curve_start, curve_param, False)
 
         end_line_param = LineSegmentParam(
             straight_length,
             param.step_size,
             curve_param.length_overflow)
 
-        self.points = curve.points
+        end_line_start = curve_start + \
+            np.append(np.dot(rot, np.array([param.radius, param.radius])), np.pi / 2)
+        self.segments[2] = LineSegment(end_line_start, end_line_param)
+
+        self.points = self.segments[1].points
+
         if (init_line_param.num_points > 0):
-            init_line = LineSegment(start, init_line_param)
-            self.points = np.concatenate([init_line.points, self.points], axis=1)
+            self.points = np.concatenate([self.segments[0].points, self.points], axis=1)
 
         if (end_line_param.num_points > 0):
-            end_line_start = start + \
-                np.array([-straight_length - param.radius, -param.radius, np.pi / 2])
-            end_line = LineSegment(end_line_start, end_line_param)
-            self.points = np.concatenate([self.points, end_line.points], axis=1)
+            self.points = np.concatenate([self.points, self.segments[2].points], axis=1)
 
         self.num_points = np.shape(self.points)[1]
+        self.segment_lookup = np.cumsum([s.length for s in self.segments])
+        self.length = self.segment_lookup[-1]
+
+    def calc_point(self, l):
+        segment_idx = np.searchsorted(self.segment_lookup, l)
+        if segment_idx > 0:
+            l -= self.segment_lookup[segment_idx - 1]
+        return self.segments[segment_idx].calc_point(l)
 
 
 class IntersectionQuadrant:
-    def __init__(self, param):
+    def __init__(self, param, quadrant):
         self.segments = [None] * SI.NUM_SEGMENTS
 
-        start_line_start = np.array(
-            [param.intersection_dim + param.straight_length, param.lane_width * 0.5, np.pi])
+        start_line_start = self.rotate_to_quadrant(np.array(
+            [param.intersection_dim + param.straight_length, param.lane_width * 0.5, np.pi]), quadrant)
         start_line_param = LineSegmentParam(param.straight_length, param.step_size, 0)
 
         self.segments[SI.BEFORE_INTERSECTION] = LineSegment(start_line_start, start_line_param)
 
-        middle_line_start = np.array([param.intersection_dim, param.lane_width * 0.5, np.pi])
+        middle_line_start = self.rotate_to_quadrant(
+            np.array([param.intersection_dim, param.lane_width * 0.5, np.pi]), quadrant)
         middle_line_param = LineSegmentParam(
             2 * param.intersection_dim,
             param.step_size,
@@ -116,7 +145,8 @@ class IntersectionQuadrant:
         self.segments[SI.IN_INTERSECTION_STRAIGHT] = LineSegment(
             middle_line_start, middle_line_param)
 
-        end_line_start = np.array([-param.intersection_dim, param.lane_width * 0.5, np.pi])
+        end_line_start = self.rotate_to_quadrant(
+            np.array([-param.intersection_dim, param.lane_width * 0.5, np.pi]), quadrant)
         end_line_param = LineSegmentParam(
             param.straight_length,
             param.step_size,
@@ -146,6 +176,11 @@ class IntersectionQuadrant:
         self.segment_lookup = np.cumsum([s.num_points for s in self.segments])
         self.num_points = self.segment_lookup[-1]
 
+    def rotate_to_quadrant(self, point, quadrant):
+        angle = (quadrant % 4) * np.pi / 2
+        rot = rot_z(angle)
+        return np.append(np.dot(rot, point[:2]), point[2] + angle)
+
     def get_point_idx(self, segment_idx, node_idx):
         if segment_idx == 0:
             return node_idx
@@ -161,14 +196,7 @@ class IntersectionQuadrant:
 
 class Intersection:
     def __init__(self, param):
-        self.quadrants = [IntersectionQuadrant(param) for i in range(4)]
-        for i in range(1, 4):
-            rot_angle = i * np.pi / 2
-            rot_mat = rot_z(rot_angle)
-            for segment in self.quadrants[i].segments:
-                segment.points[0:2, :] = np.dot(rot_mat, segment.points[0:2, :])
-                segment.points[2, :] += rot_angle
-
+        self.quadrants = [IntersectionQuadrant(param, i) for i in range(4)]
         self.quadrant_lookup = np.cumsum([q.segment_lookup[-1] for q in self.quadrants])
 
     def get_point_idx(self, quadrant, segment, node_idx):

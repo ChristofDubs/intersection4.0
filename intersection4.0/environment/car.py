@@ -5,9 +5,6 @@ This module contains the car class, allowing to track their state (position in t
 author: Christof Dubs
 """
 import numpy as np
-import matplotlib.pyplot as plt
-from intersection import Intersection
-from param import intersection_params, plot_street
 from definitions import SectionIndex, Target, Action
 from rot_2d import rot_z
 
@@ -108,6 +105,24 @@ class Car:
             (route_entry[0] - viewer_quadrant) %
             4, route_entry[1], self.node_idx)
 
+    def get_interpolated_pose(self, intersection, alpha):
+        if not self.is_active():
+            return np.array([np.inf, np.inf, 0])
+
+        entry = self.route[self.segment_idx]
+        segment = intersection.quadrants[entry[0]].segments[entry[1]]
+        length = segment.param.start_offset + segment.param.step_size * \
+            (self.node_idx + alpha * ((1 - alpha * 0.5) * self.vel + alpha * 0.5 * self.future_vel))
+        if length < segment.length:
+            return segment.calc_point(length)
+
+        if self.segment_idx >= 2:
+            return np.array([np.inf, np.inf, 0])
+
+        entry = self.route[self.segment_idx + 1]
+        segment2 = intersection.quadrants[entry[0]].segments[entry[1]]
+        return segment2.calc_point(length - segment.length)
+
     def get_pose(self, intersection):
         if not self.is_active():
             return np.array([np.inf, np.inf, 0])
@@ -122,35 +137,13 @@ class Car:
         return np.array([[front, back, back, front], [
                         half_width, half_width, -half_width, -half_width]])
 
-    def get_transformed_outline(self, intersection):
-        pose = self.get_pose(intersection)
+    def get_transformed_outline(self, pose):
         return np.dot(rot_z(pose[2]), self.get_outline()) + np.outer(pose[0:2], np.ones([1, 4]))
 
     def plot(self, plt, intersection):
-        shape = self.get_transformed_outline(intersection)
+        shape = self.get_transformed_outline(self.get_pose(intersection))
         plt.plot(shape[0, :], shape[1, :], 'r-')
 
-
-intersection = Intersection(intersection_params)
-cars = []
-
-i = 0
-j = 0
-plt.figure(0)
-while True:
-    plt.figure(0)
-    plt.cla()
-    plot_street(plt)
-    for car in cars:
-        if car.is_active():
-            car.plot(plt, intersection)
-    plt.show(block=False)
-    plt.pause(0.001)
-    for car in cars:
-        if car.is_active():
-            car.set_action(Action(0))
-            car.execute_action()
-    i = (i + 1) % 4
-    j = (j + 1) % 3
-    cars.append(Car(CarParams()))
-    cars[-1].spawn(i, Target(j), 3 + i + j, intersection)
+    def plot_interpolated(self, plt, intersection, alpha):
+        shape = self.get_transformed_outline(self.get_interpolated_pose(intersection, alpha))
+        plt.plot(shape[0, :], shape[1, :], 'r-')
