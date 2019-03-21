@@ -79,7 +79,7 @@ class Car:
         else:
             raise ValueError("invalid action: {}".format(action))
 
-        self.progress = (self.future_vel + self.vel) / 2
+        self.progress = int((self.future_vel + self.vel) / 2)
         self.calculate_future_indices()
         return np.sqrt(self.future_vel)
 
@@ -143,9 +143,13 @@ class Car:
     def get_transformed_outline(self, pose):
         return np.dot(rot_z(pose[2]), self.get_outline()) + np.outer(pose[0:2], np.ones([1, 4]))
 
-    def plot(self, plt, intersection):
+    def plot(self, plt, intersection, style='r-'):
         shape = self.get_transformed_outline(self.get_pose(intersection))
-        plt.plot(shape[0, :], shape[1, :], 'r-')
+        plt.plot(shape[0, :], shape[1, :], style)
+
+    def plot_pose(self, plt, intersection, pose, style='r-'):
+        shape = self.get_transformed_outline(pose)
+        plt.plot(shape[0, :], shape[1, :], style)
 
     def plot_interpolated(self, plt, intersection, alpha):
         shape = self.get_transformed_outline(self.get_interpolated_pose(intersection, alpha))

@@ -119,7 +119,7 @@ class LeftTurn(Segment):
         self.length = self.segment_lookup[-1]
 
     def calc_point(self, l):
-        segment_idx = np.searchsorted(self.segment_lookup, l)
+        segment_idx = np.searchsorted(self.segment_lookup, l + 1)
         if segment_idx > 0:
             l -= self.segment_lookup[segment_idx - 1]
         return self.segments[segment_idx].calc_point(l)
@@ -187,6 +187,12 @@ class IntersectionQuadrant:
 
         return self.segment_lookup[segment_idx - 1] + node_idx
 
+    def get_point_from_idx(self, point_idx):
+        segment_idx = np.searchsorted(self.segment_lookup, point_idx + 1)
+        node_idx = point_idx if segment_idx == 0 else point_idx - \
+            self.segment_lookup[segment_idx - 1]
+        return self.get_point(segment_idx, node_idx)
+
     def get_point(self, segment_idx, node_idx):
         return self.segments[segment_idx].get_point(node_idx)
 
@@ -205,6 +211,12 @@ class Intersection:
             return quadrant_node_idx
 
         return self.quadrant_lookup[quadrant - 1] + quadrant_node_idx
+
+    def get_point(self, point_idx):
+        quadrant_idx = np.searchsorted(self.quadrant_lookup, point_idx + 1)
+        seg_point_idx = point_idx if quadrant_idx == 0 else point_idx - \
+            self.quadrant_lookup[quadrant_idx - 1]
+        return self.quadrants[quadrant_idx].get_point_from_idx(seg_point_idx)
 
     def plot_points(self, plt):
         points = [self.quadrants[i].get_all_points() for i in range(4)]
