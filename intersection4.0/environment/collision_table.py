@@ -49,7 +49,7 @@ class CollisionTable:
         return False
 
     def car_arrived(self, car_idx):
-        return self.cars[car_idx].segment_idx >= 2 and self.cars[car_idx].node_idx > self.end_nodes[car_idx]
+        return self.cars[car_idx].route_segment_idx >= 2 and self.cars[car_idx].node_idx > self.end_nodes[car_idx]
 
     def advance_car(self, car_idx):
         self.cars[car_idx].set_action(Action.KEEP_SPEED)
@@ -62,7 +62,7 @@ class CollisionTable:
                 quadrant = int(idx / 4)
                 target = idx % 3
                 car.spawn(quadrant, Target(target), 1, intersection)
-                self.start_nodes[i] = car.segment_lookup[0] - \
+                self.start_nodes[i] = car.route_segment_lookup[0] - \
                     int(np.ceil(car.param.back_axis / intersection_params.step_size))
                 car.node_idx = self.start_nodes[i]
                 self.end_nodes[i] = int(
@@ -96,7 +96,17 @@ class CollisionTable:
                     not_arrived_cars = list(range(1, self.num_cars))
                     for i in not_arrived_cars:
                         self.cars[i].node_idx = self.start_nodes[i]
-                        self.cars[i].segment_idx = 0
+                        self.cars[i].route_segment_idx = 0
+
+    def extend_to_4_quadrants(self):
+        nodes_per_quadrant = self.intersection.quadrant_lookup[0]
+        total_nodes = self.intersection.quadrant_lookup[-1]
+        for i in range(1, 4):
+            keys = [key for key in self.collisions]
+            for key in keys:
+                self.collisions[(key + i * nodes_per_quadrant) %
+                                total_nodes] = [(entry + i * nodes_per_quadrant) %
+                                                total_nodes for entry in self.collisions[key]]
 
     def plot_results(self):
         plt.rcParams.update({'figure.max_open_warning': 0})
@@ -112,4 +122,5 @@ class CollisionTable:
 intersection = Intersection(intersection_params)
 collision_table = CollisionTable(intersection)
 collision_table.calculate_collision_table()
+collision_table.extend_to_4_quadrants()
 collision_table.plot_results()

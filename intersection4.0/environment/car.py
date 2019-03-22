@@ -60,9 +60,9 @@ class Car:
         self.route.append([end_quadrant, SectionIndex.AFTER_INTERSECTION])
 
         self.node_idx = 0
-        self.segment_idx = 0
-        self.segment_lookup = [intersection.quadrants[e[0]
-                                                      ].segments[e[1]].num_points for e in self.route]
+        self.route_segment_idx = 0
+        self.route_segment_lookup = [intersection.quadrants[e[0]
+                                                            ].segments[e[1]].num_points for e in self.route]
 
         self.outline = self.get_outline
 
@@ -86,52 +86,54 @@ class Car:
     def execute_action(self):
         self.vel = self.future_vel
         self.node_idx = self.future_node_idx
-        self.segment_idx = self.future_segment_idx
+        self.route_segment_idx = self.future_route_segment_idx
 
     def calculate_future_indices(self):
         self.future_node_idx = self.node_idx + self.progress
-        self.future_segment_idx = self.segment_idx
-        while (self.future_node_idx >= self.segment_lookup[self.future_segment_idx]):
-            self.future_node_idx -= self.segment_lookup[self.future_segment_idx]
-            self.future_segment_idx += 1
-            if self.future_segment_idx > 2:
-                self.future_node_idx = -1
-                return
-        return
+        self.future_route_segment_idx = self.route_segment_idx
+        self.future_route_segment_idx, self.future_node_idx = self.wrap_indices(
+            self.future_route_segment_idx, self.future_node_idx)
+
+    def wrap_indices(self, route_segment_idx, node_idx):
+        while (node_idx >= self.route_segment_lookup[route_segment_idx]):
+            node_idx -= self.route_segment_lookup[route_segment_idx]
+            route_segment_idx += 1
+            if route_segment_idx > 2:
+                node_idx = -1
+                break
+        return [route_segment_idx, node_idx]
 
     def get_state(self, intersection, viewer_quadrant):
         if not self.is_active():
             return -1
 
-        route_entry = self.route[self.segment_idx]
-        return intersection.get_point_idx(
-            (route_entry[0] - viewer_quadrant) %
-            4, route_entry[1], self.node_idx)
+        q, s = self.route[self.route_segment_idx]
+        return intersection.get_point_idx((q - viewer_quadrant) % 4, s, self.node_idx)
 
     def get_interpolated_pose(self, intersection, alpha):
         if not self.is_active():
             return np.array([np.inf, np.inf, 0])
 
-        entry = self.route[self.segment_idx]
-        segment = intersection.quadrants[entry[0]].segments[entry[1]]
+        q, s = self.route[self.route_segment_idx]
+        segment = intersection.quadrants[q].segments[s]
         length = segment.param.start_offset + segment.param.step_size * \
             (self.node_idx + alpha * ((1 - alpha * 0.5) * self.vel + alpha * 0.5 * self.future_vel))
         if length < segment.length:
             return segment.calc_point(length)
 
-        if self.segment_idx >= 2:
+        if self.route_segment_idx >= 2:
             return np.array([np.inf, np.inf, 0])
 
-        entry = self.route[self.segment_idx + 1]
-        segment2 = intersection.quadrants[entry[0]].segments[entry[1]]
+        q, s = self.route[self.route_segment_idx + 1]
+        segment2 = intersection.quadrants[q].segments[s]
         return segment2.calc_point(length - segment.length)
 
     def get_pose(self, intersection):
         if not self.is_active():
             return np.array([np.inf, np.inf, 0])
 
-        entry = self.route[self.segment_idx]
-        return intersection.quadrants[entry[0]].segments[entry[1]].get_point(self.node_idx)
+        q, s = self.route[self.route_segment_idx]
+        return intersection.quadrants[q].segments[s].get_point(self.node_idx)
 
     def get_outline(self):
         half_width = self.param.width / 2
