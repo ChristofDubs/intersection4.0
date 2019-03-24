@@ -42,6 +42,7 @@ class Car:
 
     def spawn(self, start_quadrant, target, init_vel, intersection):
         self.vel = self.param.saturate_vel(init_vel)
+        self.target = target
         self.route = [[start_quadrant, SectionIndex.BEFORE_INTERSECTION]]
 
         if target is Target.GO_STRAIGHT:
@@ -153,6 +154,6 @@ class Car:
         shape = self.get_transformed_outline(pose)
         plt.plot(shape[0, :], shape[1, :], style)
 
-    def plot_interpolated(self, plt, intersection, alpha):
+    def plot_interpolated(self, plt, intersection, alpha, style='r-'):
         shape = self.get_transformed_outline(self.get_interpolated_pose(intersection, alpha))
-        plt.plot(shape[0, :], shape[1, :], 'r-')
+        plt.plot(shape[0, :], shape[1, :], style)

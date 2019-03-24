@@ -2,7 +2,7 @@ import numpy as np
 
 w = 3.0  # lane width
 l = 4.0  # car length
-s = 50  # length pre-intersection segment
+s = 20.0  # length pre-intersection segment
 
 d_min = w / (np.sqrt(2) - 1)  # minimum intersection size to prevent overlap of left turns
 
@@ -80,11 +80,19 @@ def flip(line, i):
 
 
 def plot_street(plt):
+    b = 4
     for i in range(4):
         plt.plot(*flip(turn_edge, i), 'k')
-        plt.plot(*flip(vert_edge(d, d + s, w), i), 'k')
-        plt.plot(*flip(horz_edge(d, d + s, w), i), 'k')
-        plt.plot(*flip(vert_edge(d, d + s, 0), i), 'k--')
-        plt.plot(*flip(horz_edge(d, d + s, 0), i), 'k--')
-        plt.plot(*flip(short_turn, i), 'k--')
-        plt.plot(*flip(long_turn, i), 'k--')
+        plt.plot(*flip(vert_edge(d, d + s + b, w), i), 'k')
+        plt.plot(*flip(horz_edge(d, d + s + b, w), i), 'k')
+        plt.plot(*flip(vert_edge(d, d + s + b, 0), i), 'k--')
+        plt.plot(*flip(horz_edge(d, d + s + b, 0), i), 'k--')
+        # plt.plot(*flip(short_turn, i), 'k--')
+        # plt.plot(*flip(long_turn, i), 'k--')
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plot_street(plt)
+    plt.show()

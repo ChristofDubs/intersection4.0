@@ -5,7 +5,7 @@ This module contains the classes for expressing positions as discretized points 
 author: Christof Dubs
 """
 import numpy as np
-from param import intersection_params, plot_street
+import math
 from definitions import SectionIndex as SI
 from rot_2d import rot_z
 
@@ -16,7 +16,7 @@ class SegmentParam:
         self.length = length
         self.step_size = step_size
         self.start_offset = start_offset
-        self.num_points = int((length - start_offset) / step_size) + 1
+        self.num_points = math.floor((length - start_offset) / step_size) + 1
         self.length_overflow = np.mod(self.step_size - (length - start_offset), step_size)
 
 
@@ -119,7 +119,7 @@ class LeftTurn(Segment):
         self.length = self.segment_lookup[-1]
 
     def calc_point(self, l):
-        segment_idx = np.searchsorted(self.segment_lookup, l + 1)
+        segment_idx = np.searchsorted(self.segment_lookup, l)
         if segment_idx > 0:
             l -= self.segment_lookup[segment_idx - 1]
         return self.segments[segment_idx].calc_point(l)
@@ -202,6 +202,7 @@ class IntersectionQuadrant:
 
 class Intersection:
     def __init__(self, param):
+        self.param = param
         self.quadrants = [IntersectionQuadrant(param, i) for i in range(4)]
         self.quadrant_lookup = np.cumsum([q.segment_lookup[-1] for q in self.quadrants])
 
@@ -221,7 +222,16 @@ class Intersection:
     def plot_points(self, plt):
         points = [self.quadrants[i].get_all_points() for i in range(4)]
 
-        plot_street(plt)
         styles = ['ro', 'b*', 'g+', 'y.']
         for i in range(4):
             plt.plot([p[0] for p in points[i]], [p[1] for p in points[i]], styles[i])
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    from param import intersection_params, plot_street
+    intersection = Intersection(intersection_params)
+    plt.figure()
+    plot_street(plt)
+    intersection.plot_points(plt)
+    plt.show()

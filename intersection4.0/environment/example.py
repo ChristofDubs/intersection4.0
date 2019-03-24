@@ -1,28 +1,44 @@
 import time
+from random import randint
 import numpy as np
 import matplotlib.pyplot as plt
 from intersection import Intersection
 from car import Car, CarParams
 from param import intersection_params, plot_street
-from definitions import SectionIndex, Target, Action
-
+from definitions import Target, Action
+from collision_checker import CollisionChecker
 
 intersection = Intersection(intersection_params)
+collision_checker = CollisionChecker(intersection)
 cars = []
-
-i = 0
-j = 0
 
 plt.figure(0)
 start_time = time.time()
 alpha = 0
+collision_pairs = []
 while True:
     plt.figure(0)
     plt.cla()
     plot_street(plt)
-    for car in cars:
+
+    collisions_flat = [car for pair in collision_pairs for car in pair]
+
+    for i, car in enumerate(cars):
         car.set_action(Action(0))
-        car.plot_interpolated(plt, intersection, alpha)
+        in_collision = i in collisions_flat
+        style = 'g-' if not in_collision else 'r-'
+        car.plot_interpolated(plt, intersection, alpha, style)
+        # car.plot(plt, intersection, style)
+        if in_collision:
+            car.node_idx = -1
+
+    plt.show(block=False)
+    plt.pause(0.05)
+
+    # delete inactive cars
+    cars[:] = [car for car in cars if car.is_active()]
+
+    collision_pairs = collision_checker.check_collisions(cars)
 
     time_passed = time.time() - start_time
     start_time = time.time()
@@ -33,14 +49,11 @@ while True:
                 car.execute_action()
         alpha = np.fmod(alpha, 1)
 
-    cars.append(Car(CarParams()))
-    cars[-1].spawn(i, Target(j), 6, intersection)
+        for quadrant in range(4):
+            x = randint(0, 5)
+            if x > 2:
+                continue
+            target = x % 3
 
-    i = (i + 1) % 4
-    j = (j + 1) % 3
-
-    plt.show(block=False)
-    plt.pause(0.01)
-
-    if not cars[0].is_active():
-        break
+            cars.append(Car(CarParams()))
+            cars[-1].spawn(quadrant, Target(target), 4, intersection)

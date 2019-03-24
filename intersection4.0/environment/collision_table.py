@@ -5,9 +5,6 @@ This module contains a generated table to lookup collisions
 author: Christof Dubs
 """
 import numpy as np
-import matplotlib.pyplot as plt
-from param import intersection_params, plot_street
-from intersection import Intersection
 from car import Car, CarParams
 from definitions import Target, Action
 
@@ -40,10 +37,12 @@ class CollisionTable:
         car2_outline = car2.get_transformed_outline(car2.get_pose(self.intersection))
 
         for i in range(4):
-            for j in [0, 2]:
+            for j in range(4):
                 i_plus = (i + 1) % 4
+                j_plus = (j + 1) % 4
+
                 if intersect(car1_outline[:, i], car1_outline[:, i_plus],
-                             car2_outline[:, j], car2_outline[:, j + 1]):
+                             car2_outline[:, j], car2_outline[:, j_plus]):
                     return True
 
         return False
@@ -59,17 +58,17 @@ class CollisionTable:
         for k in range(3):
             for i, car in enumerate(self.cars):
                 idx = i + k
-                quadrant = int(idx / 4)
+                quadrant = int(idx / 3) % 4
                 target = idx % 3
-                car.spawn(quadrant, Target(target), 1, intersection)
+                car.spawn(quadrant, Target(target), 1, self.intersection)
                 self.start_nodes[i] = car.route_segment_lookup[0] - \
-                    int(np.ceil(car.param.back_axis / intersection_params.step_size))
+                    int(np.ceil(car.param.back_axis / self.intersection.param.step_size))
                 car.node_idx = self.start_nodes[i]
                 self.end_nodes[i] = int(
                     np.ceil(
                         (car.param.length -
                          car.param.back_axis) /
-                        intersection_params.step_size))
+                        self.intersection.param.step_size))
 
             not_arrived_cars = list(range(1, self.num_cars))
             while not self.car_arrived(0):
@@ -79,8 +78,8 @@ class CollisionTable:
                     if self.cars_intersect(self.cars[0], self.cars[i]):
                         if car0_state not in self.collisions:
                             self.collisions[car0_state] = []
-                        car1_state = self.cars[i].get_state(intersection, 0)
-                        if car1_state not in self.collisions[car0_state] and car1_state is not car0_state:
+                        car1_state = self.cars[i].get_state(self.intersection, 0)
+                        if car1_state not in self.collisions[car0_state]:
                             self.collisions[car0_state].append(car1_state)
 
                     # move car i one step forward
@@ -109,18 +108,28 @@ class CollisionTable:
                                                 total_nodes for entry in self.collisions[key]]
 
     def plot_results(self):
+        from param import plot_street
+        import matplotlib.pyplot as plt
         plt.rcParams.update({'figure.max_open_warning': 0})
         for point_idx in self.collisions:
             plt.figure(point_idx)
             plot_street(plt)
             for collision_point in self.collisions[point_idx]:
-                self.cars[0].plot_pose(plt, intersection, intersection.get_point(collision_point))
-            self.cars[0].plot_pose(plt, intersection, intersection.get_point(point_idx), 'b-')
+                self.cars[0].plot_pose(
+                    plt, self.intersection, self.intersection.get_point(collision_point))
+            self.cars[0].plot_pose(
+                plt,
+                self.intersection,
+                self.intersection.get_point(point_idx),
+                'b-')
         plt.show()
 
 
-intersection = Intersection(intersection_params)
-collision_table = CollisionTable(intersection)
-collision_table.calculate_collision_table()
-collision_table.extend_to_4_quadrants()
-collision_table.plot_results()
+if __name__ == '__main__':
+    from param import intersection_params
+    from intersection import Intersection
+    intersection = Intersection(intersection_params)
+    ct = CollisionTable(intersection)
+    ct.calculate_collision_table()
+    ct.extend_to_4_quadrants()
+    ct.plot_results()
