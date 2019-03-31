@@ -2,11 +2,12 @@ import time
 from random import randint
 import numpy as np
 import matplotlib.pyplot as plt
-from intersection import Intersection
-from car import Car, CarParams
-from param import intersection_params, plot_street
-from definitions import Target, Action
-from collision_checker import CollisionChecker
+import context
+from intersection4.environments.base.intersection import Intersection
+from intersection4.environments.base.car import Car, CarParams
+from intersection4.environments.base.param import intersection_params, plot_street
+from intersection4.environments.base.definitions import Target, Action
+from intersection4.environments.base.collision_checker import CollisionChecker
 
 intersection = Intersection(intersection_params)
 collision_checker = CollisionChecker(intersection)

@@ -45,13 +45,13 @@ class Car:
         self.target = target
         self.route = [[start_quadrant, SectionIndex.BEFORE_INTERSECTION]]
 
-        if target is Target.GO_STRAIGHT:
+        if target == Target.GO_STRAIGHT:
             middle_section = SectionIndex.IN_INTERSECTION_STRAIGHT
             end_quadrant = start_quadrant
-        elif target is Target.TURN_RIGHT:
+        elif target == Target.TURN_RIGHT:
             middle_section = SectionIndex.IN_INTERSECTION_RIGHT
             end_quadrant = (start_quadrant + 3) % 4
-        elif target is Target.TURN_LEFT:
+        elif target == Target.TURN_LEFT:
             middle_section = SectionIndex.IN_INTERSECTION_LEFT
             end_quadrant = (start_quadrant + 1) % 4
         else:
@@ -71,11 +71,11 @@ class Car:
         if not self.is_active():
             return 0
 
-        if action is Action.KEEP_SPEED:
+        if action == Action.KEEP_SPEED:
             self.future_vel = self.vel
-        elif action is Action.ACCELERATE:
+        elif action == Action.ACCELERATE:
             self.future_vel = self.param.saturate_vel(self.vel + self.param.speed_increment)
-        elif action is Action.DECELERATE:
+        elif action == Action.DECELERATE:
             self.future_vel = self.param.saturate_vel(self.vel - self.param.speed_increment)
         else:
             raise ValueError("invalid action: {}".format(action))
