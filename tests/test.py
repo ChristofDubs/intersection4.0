@@ -1,9 +1,11 @@
 import unittest
 
+import context
+
 import numpy as np
 
-from param import intersection_params
-from intersection import Intersection
+from intersection4.environments.base.param import intersection_params
+from intersection4.environments.base.intersection import Intersection
 
 
 class TestIntersection(unittest.TestCase):
