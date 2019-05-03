@@ -16,7 +16,7 @@ class CarParams:
         self.back_axis = 3.0
         self.speed_increment = 2
         self.min_speed = 0
-        self.max_speed = 20
+        self.max_speed = 10
         self.max_speed_long_turn = 10
         self.max_speed_sharp_turn = 4
 
@@ -33,12 +33,14 @@ class CarParams:
 class Car:
     def __init__(self, param):
         self.param = param
-        self.node_idx = -1
-        self.is_spawned = False
-        self.progress = 0
+        self.reset()
 
     def is_active(self):
         return self.node_idx >= 0
+
+    def reset(self):
+        self.node_idx = -1
+        self.progress = 0
 
     def spawn(self, start_quadrant, target, init_vel, intersection):
         self.vel = self.param.saturate_vel(init_vel)
@@ -100,8 +102,7 @@ class Car:
             node_idx -= self.route_segment_lookup[route_segment_idx]
             route_segment_idx += 1
             if route_segment_idx > 2:
-                node_idx = -1
-                break
+                return [0, -1]
         return [route_segment_idx, node_idx]
 
     def get_state(self, intersection, viewer_quadrant):
