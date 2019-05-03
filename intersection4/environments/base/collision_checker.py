@@ -164,8 +164,8 @@ class CollisionChecker:
                 return [0]
             return list(np.linspace(0, 1, car.vel + 1))
         delta_vel = car.future_vel - car.vel
-        return [(-car.vel + np.sqrt(car.vel**2 + 4 * delta_vel * i)) / (2 * delta_vel)
-                for i in range(int((car.future_vel + car.vel / 2)) + 1)]
+        return [(-car.vel + np.sqrt(car.vel**2 + 2 * delta_vel * i)) / delta_vel
+                for i in range(int((car.future_vel + car.vel) / 2) + 1)]
 
     def create_car_segment_and_node_time_table(self, car):
         if not car.is_active():
@@ -190,6 +190,7 @@ class CollisionChecker:
         # special case of car in rest
         if len(time_vec) == 1:
             time_table.append([1, point_idx, status])
+            segment_table[-1][0][-1] = 1
             return segment_table, time_table
 
         for t in time_vec[1:]:
