@@ -14,9 +14,11 @@ class Target(IntEnum):
     GO_STRAIGHT = 0
     TURN_RIGHT = 1
     TURN_LEFT = 2
+    NUM_TARGETS = 3
 
 
 class Action(IntEnum):
     KEEP_SPEED = 0
     ACCELERATE = 1
     DECELERATE = 2
+    NUM_ACTIONS = 3

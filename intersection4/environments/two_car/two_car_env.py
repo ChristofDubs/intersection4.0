@@ -7,11 +7,11 @@ author: Christof Dubs
 import context
 import numpy as np
 import matplotlib.pyplot as plt
-from environments.base.intersection import Intersection
-from environments.base.car import Car, CarParams
-from environments.base.param import intersection_params, plot_street
-from environments.base.definitions import Target
-from environments.base.collision_checker import CollisionChecker
+from intersection4.environments.base.intersection import Intersection
+from intersection4.environments.base.car import Car, CarParams
+from intersection4.environments.base.param import intersection_params, plot_street
+from intersection4.environments.base.definitions import Target
+from intersection4.environments.base.collision_checker import CollisionChecker
 
 
 class TwoCarEnv:
