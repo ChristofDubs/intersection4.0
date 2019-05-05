@@ -31,10 +31,8 @@ class Agent:
         return action_pair[0] * Action.NUM_ACTIONS + action_pair[1]
 
     def add_values(self, key):
-        if key[0] == -1 and key[2] == -1:
-            self.values[key] = [0] * self.num_action_pairs
-        else:
-            self.values[key] = [-5000] * self.num_action_pairs
+        assert(key[0] != -1 or key[2] != -1)
+        self.values[key] = [-5000] * self.num_action_pairs
 
     def get_epsilon_greedy_action(self, state):
         key = tuple(state)
@@ -81,8 +79,9 @@ class Agent:
             [old_state, action, reward] = self.experience[i - 1]
             self.update(old_state, action, reward, new_state)
 
-    def on_termination(self, terminal_state):
-        self.add_values(tuple(terminal_state))
+    def on_termination(self):
+        terminal_state = [-1,-1]
+        self.values[tuple(terminal_state)] = [0]
         self.save_data(terminal_state, None, None)
         self.learn()
         self.experience.clear()

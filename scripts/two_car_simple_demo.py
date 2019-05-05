@@ -18,7 +18,7 @@ for i_episode in range(100):
 
         if done:
             env.render()
-            agent.on_termination(new_state)
+            agent.on_termination()
             print(
                 "Episode {} finished after {} timesteps. Total reward: {}".format(
                     i_episode, t + 1, total_reward))
