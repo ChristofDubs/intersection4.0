@@ -2,7 +2,7 @@ import numpy as np
 
 w = 3.0  # lane width
 l = 4.0  # car length
-s = 20.0  # length pre-intersection segment
+s = 50.0  # length pre-intersection segment
 
 d_min = w / (np.sqrt(2) - 1)  # minimum intersection size to prevent overlap of left turns
 

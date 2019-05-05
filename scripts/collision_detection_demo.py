@@ -58,7 +58,7 @@ while time.time() - start_time < sim_duration:
         for i, car in enumerate(cars):
             in_collision = i in collisions_flat
             if in_collision:
-                car.node_idx = -1
+                car.reset()
             if car.is_active():
                 car.execute_action()
         alpha = np.fmod(alpha, 1)
